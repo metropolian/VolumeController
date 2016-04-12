@@ -1,0 +1,56 @@
+﻿
+    IMMDeviceEnumerator device_enumerator = Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid(ComCLSIDs.MMDeviceEnumeratorCLSID))) as IMMDeviceEnumerator; 
+    IMMDevice device;
+
+    device_enumerator.GetDefaultAudioEndpoint(
+        Vannatech.CoreAudio.Enumerations.EDataFlow.eRender, 
+        Vannatech.CoreAudio.Enumerations.ERole.eMultimedia, out device);
+
+    string device_id = "";
+    device.GetId(out device_id);
+
+    IPropertyStore device_prop;
+    device.OpenPropertyStore(0, out device_prop);
+    PROPERTYKEY prop_key = new PROPERTYKEY();
+    prop_key.pid = 2;
+    prop_key.fmtid = PropertyKeys.PKEY_DeviceInterface_FriendlyName;
+    PROPVARIANT prop_value;
+    device_prop.GetValue(ref prop_key, out prop_value);
+    string device_name = Marshal.PtrToStringAuto(prop_value.Data.AsStringPtr);
+
+    Guid iid = Guid.Empty;
+    object session_manager_object = null;
+    IAudioSessionManager2 session_manager;
+    iid = new Guid(ComIIDs.IAudioSessionManager2IID);
+    device.Activate(iid, (uint)CLSCTX.CLSCTX_INPROC_SERVER, IntPtr.Zero, out session_manager_object);
+    session_manager = session_manager_object as IAudioSessionManager2;
+
+    IAudioSessionEnumerator sessionList = null;
+    session_manager.GetSessionEnumerator(out sessionList);
+
+    int cnt = 0;
+    sessionList.GetCount(out cnt);
+
+    for (int index = 0; index < cnt; index++)
+    {
+        IAudioSessionControl session = null;
+        IAudioSessionControl2 session2 = null;
+        sessionList.GetSession(index, out session);
+        string name = "";
+
+        session2 = session as IAudioSessionControl2;
+        session2.GetDisplayName(out name);
+
+        ISimpleAudioVolume simple_audio_volume = session as ISimpleAudioVolume;
+        //simple_audio_volume.SetMute(true, Guid.Empty);
+
+        simple_audio_volume.SetMasterVolume(0.5f, Guid.Empty);
+
+        uint pid = 0;
+        session2.GetProcessId(out pid);
+
+                
+
+        Console.WriteLine(pid.ToString());
+
+    }
