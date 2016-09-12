@@ -16,6 +16,12 @@ namespace VolumeController
 
         public ToolStripMenuItem Add(string text, Image icon, EventHandler onClick)
         {
+            if (text == "-")
+            {
+                this.Items.Add(new ToolStripSeparator());
+                return null;
+            }
+
             ToolStripMenuItem res = new ToolStripMenuItem(text, icon, onClick);
             this.Items.Add(res);
             return res;

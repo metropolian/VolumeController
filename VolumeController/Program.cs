@@ -26,6 +26,8 @@ namespace VolumeController
                 Startup = new SystemStartup();
 
                 TrayIcon = new SystemTrayIcon(Properties.Resources.TrayIcon);
+                TrayIcon.ContextMenu.Add("VolumeController", null, null);
+                TrayIcon.ContextMenu.Add("-", null, null);
                 TrayIcon.ContextMenu.Add("Run at Startup", null, TrayIcon_RunAtStartup).Checked = Startup.IsRegistered;
                 TrayIcon.ContextMenu.Add("Quit", null, TrayIcon_Quit);
                 TrayIcon.Start();
