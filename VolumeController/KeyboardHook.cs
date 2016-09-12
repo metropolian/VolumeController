@@ -22,7 +22,7 @@ namespace VolumeController
             WM_KEYUP = 0x0101
         }
 
-        public delegate bool KeyboardHookEvent(KeyAction Action, KBDLLHOOKSTRUCT Data );
+        public delegate bool KeyboardHookEvent(KeyAction Action, Keys Key );
         public static event KeyboardHookEvent OnKeyboardEvent;
 
         private static IntPtr HHook = IntPtr.Zero;
@@ -46,13 +46,17 @@ namespace VolumeController
 
         private static IntPtr HookCallback(int nCode, int wParam, int lParam)
         {
+            //Console.WriteLine("nCode: " + nCode.ToString());
+
             if ((nCode >= 0) && (OnKeyboardEvent != null))
             {
                 try
                 {
                     KBDLLHOOKSTRUCT Data = new KBDLLHOOKSTRUCT();
                     Marshal.PtrToStructure((IntPtr)lParam, Data);
-                    if (OnKeyboardEvent((KeyAction)wParam, Data))
+
+                    //Console.WriteLine((Keys)Data.vkCode);
+                    if (OnKeyboardEvent((KeyAction)wParam, (Keys)Data.vkCode))
                         return (IntPtr)1;
                 }
                 catch

@@ -47,22 +47,23 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AudioSessionManager.cs" />
+    <Compile Include="KeyboardHotKey.cs" />
     <Compile Include="ContextMenuStripEx.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Form1.cs">
+    <Compile Include="VolumeDisplayForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Form1.Designer.cs">
-      <DependentUpon>Form1.cs</DependentUpon>
+    <Compile Include="VolumeDisplayForm.Designer.cs">
+      <DependentUpon>VolumeDisplayForm.cs</DependentUpon>
     </Compile>
     <Compile Include="KeyboardHook.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SystemStartup.cs" />
     <Compile Include="SystemTrayIcon.cs" />
-    <EmbeddedResource Include="Form1.resx">
-      <DependentUpon>Form1.cs</DependentUpon>
+    <EmbeddedResource Include="VolumeDisplayForm.resx">
+      <DependentUpon>VolumeDisplayForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -88,10 +89,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CoreAudioTests\CoreAudioTests.csproj">
-      <Project>{40a8f7ea-c45a-487b-b6e0-bc151827e8c4}</Project>
-      <Name>CoreAudioTests</Name>
-    </ProjectReference>
     <ProjectReference Include="..\CoreAudio\CoreAudio.csproj">
       <Project>{2222e8d7-6130-4b46-9749-474e3fe2891b}</Project>
       <Name>CoreAudio</Name>

@@ -18,6 +18,7 @@ namespace VolumeController
         public static SystemStartup Startup;
         public static AudioSessionManager AudioManager;
         public static SystemTrayIcon TrayIcon;
+        public static VolumeDisplayForm StatusForm;
 
         /// <summary>
         /// The main entry point for the application.
@@ -25,26 +26,54 @@ namespace VolumeController
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
+            try
+            {
 
-            Startup = new SystemStartup();
-            
-            TrayIcon = new SystemTrayIcon(Properties.Resources.TrayIcon);
-            TrayIcon.ContextMenu.Add("Run at Startup", null, TrayIcon_RunAtStartup).Checked = Startup.IsRegistered;
-            TrayIcon.ContextMenu.Add("Quit", null, TrayIcon_Quit);
-            TrayIcon.Start();
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
 
-            AudioManager = new AudioSessionManager();
-            AudioManager.GetSessionManager(AudioManager.GetDefaultDevice());
+                Startup = new SystemStartup();
 
-            KeyboardHook.Start();
-            KeyboardHook.OnKeyboardEvent += KeyboardHook_OnKeyboardEvent;
-            
-            Application.Run();
+                TrayIcon = new SystemTrayIcon(Properties.Resources.TrayIcon);
+                TrayIcon.ContextMenu.Add("Run at Startup", null, TrayIcon_RunAtStartup).Checked = Startup.IsRegistered;
+                TrayIcon.ContextMenu.Add("Quit", null, TrayIcon_Quit);
+                TrayIcon.Start();
 
-            KeyboardHook.Stop();
-            TrayIcon.Stop();
+                AudioManager = new AudioSessionManager();
+                AudioManager.GetSessionManager(AudioManager.GetDefaultDevice());
+
+                StatusForm = new VolumeDisplayForm();
+
+                if (false)
+                {
+                    KeyboardHook.Start();
+                    KeyboardHook.OnKeyboardEvent += KeyboardHook_OnKeyboardEvent;
+
+                    Application.Run();
+
+                    KeyboardHook.Stop();
+                }
+                else
+                {
+                    KeyboardHotKey hotkey = new KeyboardHotKey(null);
+                    hotkey.OnKeyboardEvent += KeyboardHook_OnKeyboardEvent;
+                    hotkey.RegisterKey(Keys.VolumeUp);
+                    hotkey.RegisterKey(Keys.VolumeDown);
+
+                    hotkey.Start();
+
+                    Application.Run();
+
+                    hotkey.Stop();
+                }
+
+                TrayIcon.Stop();
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            MessageBox.Show("AppExit");
         }
 
         private static void TrayIcon_RunAtStartup(object sender, EventArgs e)
@@ -74,13 +103,12 @@ namespace VolumeController
             uint pid = 0;
             IntPtr handle = GetForegroundWindow();
             GetWindowThreadProcessId(handle, out pid);
+            Console.WriteLine(pid);
             return pid;
         }
 
-        private static bool KeyboardHook_OnKeyboardEvent(KeyboardHook.KeyAction Action, KeyboardHook.KBDLLHOOKSTRUCT Data)
+        private static bool KeyboardHook_OnKeyboardEvent(KeyboardHook.KeyAction Action, Keys Key)
         {
-            Keys Key = (Keys)Data.vkCode;
-
             switch(Key)
             {
                 case Keys.VolumeMute:
@@ -89,7 +117,7 @@ namespace VolumeController
                         AudioManager.EnumSessions(
                             AudioManager.GetSessionManager(AudioManager.GetDefaultDevice()),
                             AudioSession_Muter,
-                            GetCurrentWindowProcessId());
+                            GetCurrentWindowProcessId());                        
                     }                        
                     return true;
 
@@ -115,7 +143,7 @@ namespace VolumeController
                     return true;
             }
             
-            Console.WriteLine(Key);
+            //Console.WriteLine(Key);
             return false;
         }
 
@@ -132,10 +160,12 @@ namespace VolumeController
         {
             if (session.PID != (uint)data)
                 return true;
-            float Value = session.CurrentVolume + 0.05f;
+            float Value = session.CurrentVolume + 0.01f;
             if (Value > 1)
                 Value = 1;
             session.SetVolume(Value);
+            StatusForm.Value = Value * 100f;
+            StatusForm.Toast();
             return false;
         }
 
@@ -143,10 +173,13 @@ namespace VolumeController
         {
             if (session.PID != (uint)data)
                 return true;
-            float Value = session.CurrentVolume - 0.05f;
+            float Value = session.CurrentVolume - 0.01f;
             if (Value < 0)
                 Value = 0;
             session.SetVolume(Value);
+
+            StatusForm.Value = Value * 100f;
+            StatusForm.Toast();
             return false;
         }
     }
