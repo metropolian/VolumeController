@@ -1,15 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using Vannatech.CoreAudio.Interfaces;
-using Vannatech.CoreAudio.Constants;
-using Vannatech.CoreAudio.Externals;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Diagnostics;
-using System.Media;
+using System.Windows.Keyboard;
 
 namespace VolumeController
 {
@@ -18,7 +10,7 @@ namespace VolumeController
         public static SystemStartup Startup;
         public static AudioSessionManager AudioManager;
         public static SystemTrayIcon TrayIcon;
-        public static VolumeDisplayForm StatusForm;
+        public static VolumeDisplayForm VolumeStatusWindow;
 
         /// <summary>
         /// The main entry point for the application.
@@ -28,7 +20,6 @@ namespace VolumeController
         {
             try
             {
-
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
 
@@ -42,31 +33,19 @@ namespace VolumeController
                 AudioManager = new AudioSessionManager();
                 AudioManager.GetSessionManager(AudioManager.GetDefaultDevice());
 
-                StatusForm = new VolumeDisplayForm();
+                VolumeStatusWindow = new VolumeDisplayForm();
 
-                if (false)
-                {
-                    KeyboardHook.Start();
-                    KeyboardHook.OnKeyboardEvent += KeyboardHook_OnKeyboardEvent;
+                KeyboardHotKey hotkey = new KeyboardHotKey(null);
+                hotkey.OnKeyboardEvent += KeyboardHook_OnKeyboardEvent;
+                hotkey.RegisterKey(Keys.VolumeUp);
+                hotkey.RegisterKey(Keys.VolumeDown);
+                hotkey.RegisterKey(Keys.VolumeMute);
+                
+                hotkey.Start();
 
-                    Application.Run();
+                Application.Run();
 
-                    KeyboardHook.Stop();
-                }
-                else
-                {
-                    KeyboardHotKey hotkey = new KeyboardHotKey(null);
-                    hotkey.OnKeyboardEvent += KeyboardHook_OnKeyboardEvent;
-                    hotkey.RegisterKey(Keys.VolumeUp);
-                    hotkey.RegisterKey(Keys.VolumeDown);
-
-                    hotkey.Start();
-
-                    Application.Run();
-
-                    hotkey.Stop();
-                }
-
+                hotkey.Stop();
                 TrayIcon.Stop();
             }
             catch(Exception ex)
@@ -107,38 +86,33 @@ namespace VolumeController
             return pid;
         }
 
-        private static bool KeyboardHook_OnKeyboardEvent(KeyboardHook.KeyAction Action, Keys Key)
+        private static bool KeyboardHook_OnKeyboardEvent(KeyAction Action, Keys Key)
         {
             switch(Key)
             {
                 case Keys.VolumeMute:
-                    if (Action == KeyboardHook.KeyAction.WM_KEYUP)
-                    {                        
-                        AudioManager.EnumSessions(
-                            AudioManager.GetSessionManager(AudioManager.GetDefaultDevice()),
-                            AudioSession_Muter,
-                            GetCurrentWindowProcessId());                        
+                    if (Action == KeyAction.WM_KEYUP)
+                    {
+                        AudioSessionControl session = AudioSession_GetCurrentForeground();
+                        AudioSession_MuteToggle(session);
                     }                        
                     return true;
 
                 case Keys.VolumeUp:
 
-                    if (Action == KeyboardHook.KeyAction.WM_KEYUP)
+                    if (Action == KeyAction.WM_KEYUP)
                     {
-                        AudioManager.EnumSessions(
-                            AudioManager.GetSessionManager(AudioManager.GetDefaultDevice()),
-                            AudioSession_Increaser,
-                            GetCurrentWindowProcessId());
+                        AudioSessionControl session = AudioSession_GetCurrentForeground();
+                        AudioSession_Increaser(session );
                     }
                     return true;
 
                 case Keys.VolumeDown:
-                    if (Action == KeyboardHook.KeyAction.WM_KEYUP)
+                    if (Action == KeyAction.WM_KEYUP)
                     {
-                        AudioManager.EnumSessions(
-                            AudioManager.GetSessionManager(AudioManager.GetDefaultDevice()),
-                            AudioSession_Decreaser,
-                            GetCurrentWindowProcessId());
+                        AudioSessionControl session = AudioSession_GetCurrentForeground();
+                        
+                        AudioSession_Decreaser(session);
                     }
                     return true;
             }
@@ -147,40 +121,66 @@ namespace VolumeController
             return false;
         }
 
-        private static bool AudioSession_Muter(AudioSessionControl session, object data)
+        private static AudioSessionControl AudioSession_GetCurrentForeground()
+        {
+            if (VolumeStatusWindow.CurrentSession == null)
+            {
+                VolumeStatusWindow.HostProcessId = GetCurrentWindowProcessId();
+                VolumeStatusWindow.CurrentSession = AudioManager.FindSession(
+                    AudioManager.GetSessionManager(AudioManager.GetDefaultDevice()),
+                    AudioMatch_Session,
+                    VolumeStatusWindow.HostProcessId
+                    );
+            }
+            return (AudioSessionControl) VolumeStatusWindow.CurrentSession;
+        }
+
+        private static bool AudioMatch_Session(AudioSessionControl session, object data)
         {
             if (session.PID != (uint)data)
                 return true;
-
-            session.SetMute(!session.IsMute);
             return false;
         }
 
-        private static bool AudioSession_Increaser(AudioSessionControl session, object data)
+        private static bool AudioSession_MuteToggle(AudioSessionControl session)
         {
-            if (session.PID != (uint)data)
-                return true;
+            if (session == null)
+                return false;
+
+            bool Muted = !session.IsMute;
+            session.SetMute(Muted);
+
+            VolumeStatusWindow.Status = Muted ? VolumeDisplayForm.DisplayStatus.Muted : VolumeDisplayForm.DisplayStatus.Normal;
+            VolumeStatusWindow.Toast();
+            return true;
+        }
+
+        private static bool AudioSession_Increaser(AudioSessionControl session)
+        {
+            if (session == null)
+                return false;
+
             float Value = session.CurrentVolume + 0.01f;
             if (Value > 1)
                 Value = 1;
             session.SetVolume(Value);
-            StatusForm.Value = Value * 100f;
-            StatusForm.Toast();
-            return false;
+            VolumeStatusWindow.Value = Value * 100f;
+            VolumeStatusWindow.Toast();
+            return true;
         }
 
-        private static bool AudioSession_Decreaser(AudioSessionControl session, object data)
+        private static bool AudioSession_Decreaser(AudioSessionControl session)
         {
-            if (session.PID != (uint)data)
-                return true;
+            if (session == null)
+                return false;
             float Value = session.CurrentVolume - 0.01f;
             if (Value < 0)
                 Value = 0;
             session.SetVolume(Value);
 
-            StatusForm.Value = Value * 100f;
-            StatusForm.Toast();
-            return false;
+            VolumeStatusWindow.Value = Value * 100f;
+            VolumeStatusWindow.Toast();
+            return true;
         }
     }
 }

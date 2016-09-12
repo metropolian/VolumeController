@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace VolumeController
+namespace System.Windows.Keyboard
 {
     class KeyboardHotKey : IMessageFilter
     {
+        public delegate bool KeyboardHookEvent(KeyAction Action, Keys Key);
         public event KeyboardHook.KeyboardHookEvent OnKeyboardEvent;
 
         #region fields
@@ -52,7 +49,7 @@ namespace VolumeController
                 modifiers = modifiers | MOD_SHIFT;
 
             Keys vk = key & ~Keys.Control & ~Keys.Shift & ~Keys.Alt;
-            Hash_Id = this.GetHashCode(); // this should be a key unique ID, modify this if you want more than one hotkey
+            Hash_Id = this.GetHashCode(); 
             
             RegisterHotKey((IntPtr)IntPtr.Zero, Hash_Id, modifiers, (uint)vk);
         }
@@ -75,8 +72,8 @@ namespace VolumeController
             if (m.Msg == WM_HOTKEY)
             {
                 int vk = m.LParam.ToInt32() >> 16;
-                OnKeyboardEvent(KeyboardHook.KeyAction.WM_KEYDOWN, (Keys)vk);
-                OnKeyboardEvent(KeyboardHook.KeyAction.WM_KEYUP, (Keys)vk);
+                OnKeyboardEvent(KeyAction.WM_KEYDOWN, (Keys)vk);
+                OnKeyboardEvent(KeyAction.WM_KEYUP, (Keys)vk);
                 return true;
             }
             return false;

@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\_release\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -46,8 +46,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AudioSessionManager.cs" />
-    <Compile Include="KeyboardHotKey.cs" />
+    <Compile Include="AudioSession\AudioSessionControl.cs" />
+    <Compile Include="AudioSession\AudioSessionManager.cs" />
+    <Compile Include="Keyboard\KeyAction.cs" />
+    <Compile Include="Keyboard\KeyboardHotKey.cs" />
     <Compile Include="ContextMenuStripEx.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -57,7 +59,7 @@
     <Compile Include="VolumeDisplayForm.Designer.cs">
       <DependentUpon>VolumeDisplayForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="KeyboardHook.cs" />
+    <Compile Include="Keyboard\KeyboardHook.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SystemStartup.cs" />

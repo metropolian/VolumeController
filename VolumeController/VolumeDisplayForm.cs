@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -12,12 +13,34 @@ namespace VolumeController
 {
     public partial class VolumeDisplayForm : Form
     {
+        public enum DisplayStatus
+        {
+            Normal = 1,
+            Muted
+        }
+
         public Timer Toaster;
 
         public int HideMillis = 5000;
 
         private DateTime StartDateTime;
-        public float Value;
+        private float VolumeValue;
+
+        public float Value
+        {
+            set
+            {
+                VolumeValue = value;
+                LbValue.Text = String.Format("{0:0}", VolumeValue);
+            }
+
+            get { return VolumeValue;  }
+        }
+
+        public DisplayStatus Status;
+
+        public uint HostProcessId = 0;
+        public object CurrentSession = null;
 
         protected override CreateParams CreateParams
         {
@@ -28,7 +51,7 @@ namespace VolumeController
                 const int WS_EX_NOACTIVATE = 0x08000000;
                 const int WS_EX_TOOLWINDOW = 0x00000080;
                 baseParams.ExStyle |= (int)(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
-
+                Opacity = 0.75f;
                 return baseParams;
             }
         }
@@ -79,6 +102,17 @@ namespace VolumeController
 
                 Show();
             }
+
+            try
+            {
+                Process HostProcess = Process.GetProcessById((int)HostProcessId);
+                ImIcon.Image = Icon.ExtractAssociatedIcon(HostProcess.MainModule.FileName).ToBitmap();
+            }
+            catch
+            {
+                ImIcon.Image = null;
+            }
+
             //BringToFront();
             Invalidate();
         }
@@ -87,6 +121,9 @@ namespace VolumeController
 
         public new void Hide()
         {
+            CurrentSession = null;
+            HostProcessId = 0;
+
             Toaster.Stop();
             base.Hide();
         }
@@ -96,6 +133,7 @@ namespace VolumeController
             e.Cancel = true;
         }
 
+        /*
         private void VolumeDisplayForm_Paint(object sender, PaintEventArgs e)
         {
             Graphics Gfx = e.Graphics;
@@ -107,12 +145,16 @@ namespace VolumeController
             RectangleF Bounds = this.ClientRectangle;
 
             Font CurFont = new Font("Terminal", 72);
-            Brush BrushColor = new SolidBrush(Color.Lime);            
+            Color TextColor = Color.Lime;
+            if (Status == DisplayStatus.Muted)
+                TextColor = Color.Red;
+            
+            Brush BrushColor = new SolidBrush(TextColor);
             Gfx.DrawString(String.Format("{0:0}", Value), CurFont, BrushColor, Bounds, Format);
 
-            CurFont.Dispose();
             BrushColor.Dispose();
+            CurFont.Dispose();
 
-        }
+        } */
     }    
 }

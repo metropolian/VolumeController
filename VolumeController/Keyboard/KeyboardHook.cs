@@ -1,26 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace VolumeController
+namespace System.Windows.Keyboard
 {
-
     class KeyboardHook
     {
 
         private const int WH_KEYBOARD_LL = 13;
-
-        public enum KeyAction
-        {
-            None = 0,
-            WM_KEYDOWN = 0x0100,
-            WM_KEYUP = 0x0101
-        }
 
         public delegate bool KeyboardHookEvent(KeyAction Action, Keys Key );
         public static event KeyboardHookEvent OnKeyboardEvent;

@@ -3,8 +3,6 @@ using Vannatech.CoreAudio.Interfaces;
 using Vannatech.CoreAudio.Constants;
 using Vannatech.CoreAudio.Externals;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Diagnostics;
 
 namespace VolumeController
 {
@@ -69,7 +67,6 @@ namespace VolumeController
             
             int cnt = 0;
             sessionList.GetCount(out cnt);
-
             for (int index = 0; index < cnt; index++)
             {
                 IAudioSessionControl session = null;
@@ -97,98 +94,49 @@ namespace VolumeController
             GC.WaitForPendingFinalizers();
             return cnt;
         }
-    }
 
-    class AudioSessionControl : IDisposable
-    {
-        private IAudioSessionControl session;
-        private IAudioSessionControl2 session2;
-        private ISimpleAudioVolume volume;
-
-        public AudioSessionControl(object inp)
+        public AudioSessionControl FindSession(IAudioSessionManager2 session_manager, AudioSessionProc matchsession_proc, object data)
         {
-            session = inp as IAudioSessionControl;
-            session2 = inp as IAudioSessionControl2;
-            volume = session as ISimpleAudioVolume;
-        }
+            AudioSessionControl res = null;
+            IAudioSessionEnumerator sessionList = null;
+            session_manager.GetSessionEnumerator(out sessionList);
+            if (sessionList == null)
+                return null;
 
-        public string DisplayName
-        {
-            get
+            int cnt = 0;
+            sessionList.GetCount(out cnt);
+
+            for (int index = 0; index < cnt; index++)
             {
-                string res = "";
+                IAudioSessionControl session = null;
+                sessionList.GetSession(index, out session);
                 if (session == null)
-                    return res;
+                    continue;
 
-                session.GetDisplayName(out res);
-                if (res == "")
+                bool quit = false;
+                AudioSessionControl control = null;
+                try
                 {
-                    if (session2 == null)
-                        return res;
-
-                    uint pid = 0;
-                    session2.GetProcessId(out pid);
-                    Process proc = Process.GetProcessById((int)pid);
-                    res = proc.MainWindowTitle;
+                    control = new AudioSessionControl(session);
+                    quit = (matchsession_proc(control, data) == false);
+                    if (quit)
+                    {
+                        res = control;
+                        break;
+                    }
+                    control.Dispose();
+                    Marshal.Release(Marshal.GetIUnknownForObject(session));
                 }
-                return res;
+                catch { }
+                {
+                }
+
             }
+            Marshal.Release(Marshal.GetIUnknownForObject(sessionList));
+            GC.WaitForPendingFinalizers();
+            return res;
         }
 
-        public uint PID
-        {
-            get
-            {
-                if (session2 == null)
-                    return 0;
-                uint pid = 0;
-                session2.GetProcessId(out pid);
-                return pid;
-            }
-        }
-
-        public bool SetVolume(float Value)
-        {
-            if (volume == null)
-                return false;            
-            return volume.SetMasterVolume(Value, Guid.Empty) == 0;
-        }
-
-        public bool SetMute(bool Value)
-        {
-            if (volume == null)
-                return false;
-            return volume.SetMute(Value, Guid.Empty) == 0;
-        }
-
-        public void Dispose()
-        {
-            Marshal.Release(Marshal.GetIUnknownForObject(session));
-        }
-
-        public float CurrentVolume
-        {
-            get
-            {
-                if (volume == null)
-                    return 0;
-                float res = 0;
-                volume.GetMasterVolume(out res);
-                return res;
-            }
-        }
-
-        public bool IsMute
-        {
-            get
-            {
-                if (volume == null)
-                    return false;
-
-                bool res = false;
-                volume.GetMute(out res);
-                return res;
-            }
-        }
     }
+
 }
